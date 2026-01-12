@@ -105,7 +105,7 @@ function renderPortfolio() {
             <a href="#projects" class="btn btn-primary">
               <span>View Projects</span>
             </a>
-            <a href="/Black%20and%20Grey%20Simple%20Infographic%20Resume.pdf" target="_blank" class="btn btn-secondary" id="cv-download">
+            <a href="/Arjan%20Barua%20Resume.pdf" target="_blank" class="btn btn-secondary" id="cv-download">
               <span>📄 Download CV</span>
             </a>
             <a href="#contact" class="btn btn-secondary">
@@ -235,8 +235,8 @@ function renderPortfolio() {
     cvButton.addEventListener('click', function (e: Event) {
       e.preventDefault();
       const link = document.createElement('a');
-      link.href = '/Black%20and%20Grey%20Simple%20Infographic%20Resume.pdf';
-      link.download = 'Arjan_Barua_CV.pdf';
+      link.href = '/Arjan%20Barua%20Resume.pdf';
+      link.download = 'Arjan_Barua_Resume.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
