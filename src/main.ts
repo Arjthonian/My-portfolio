@@ -810,38 +810,68 @@ function attachCommonListeners() {
 
 // Router
 async function router() {
+  const path = window.location.pathname;
   const hash = window.location.hash;
   const { data: { session } } = await supabase.auth.getSession();
 
-  if (allProjects.length === 0 && (hash === '#/projects' || hash === '#/admin/dashboard' || hash === '#/')) {
+  // Redirect path to hash for SPA compatibility
+  if (path !== '/' && !hash) {
+    window.location.hash = `#${path}`;
+    window.history.replaceState(null, '', '/');
+    return;
+  }
+
+  const route = hash || '#/';
+
+  if (allProjects.length === 0 && (route === '#/projects' || route === '#/admin/dashboard' || route === '#/')) {
     renderLoading();
     await fetchProjects();
   }
 
-  if (hash === '#/projects') {
+  if (route === '#/projects') {
     renderProjectsPage();
-  } else if (hash === '#/admin') {
+  } else if (route === '#/admin') {
     // Force sign out to ensure credentials are required every time
     await supabase.auth.signOut();
     renderAdminLoginPage();
-  } else if (hash === '#/admin/dashboard') {
+  } else if (route === '#/admin/dashboard') {
     if (!session || session.user.id !== AUTHORIZED_UID) {
       await supabase.auth.signOut();
       window.location.hash = '#/admin';
     } else {
       await renderAdminDashboard();
     }
-  } else {
-    renderHomePage();
-    if (hash && hash.startsWith('#') && !hash.startsWith('#/')) {
-      setTimeout(() => {
-        const target = document.querySelector(hash);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 0);
+  } else if (route === '#/' || route.startsWith('#')) {
+    // Check if it's a known home section vs a bad route
+    const isFragment = route.startsWith('#') && !route.startsWith('#/');
+
+    if (route === '#/' || isFragment) {
+      renderHomePage();
+      if (isFragment) {
+        setTimeout(() => {
+          const target = document.querySelector(route);
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        }, 0);
+      }
+    } else {
+      render404();
     }
+  } else {
+    render404();
   }
+}
+
+function render404() {
+  const app = document.querySelector<HTMLDivElement>('#app')!;
+  app.innerHTML = `
+    ${navbarHTML}
+    <div style="height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: var(--space-md); text-align: center; padding: 20px;">
+      <h1 class="section-title" style="font-size: 8rem; margin: 0; filter: blur(2px); opacity: 0.5;">404</h1>
+      <h2 style="font-family: var(--font-primary); color: var(--color-text-primary);">Page Not Found</h2>
+      <p style="color: var(--color-text-muted); max-width: 400px;">The link you followed may be broken, or the page may have been removed.</p>
+      <a href="#/" class="btn btn-primary" style="margin-top: 20px;"><span>Back to Safety</span></a>
+    </div>
+  `;
 }
 
 // Initialize
