@@ -50,7 +50,7 @@ const INITIAL_PROJECTS: Project[] = [
 let dbProjects: Project[] = [];
 let allProjects: Project[] = [];
 let isLoading = false;
-let editingProjectId: string | null = null;
+
 let currentAuthView: 'login' | 'signup' = 'login';
 let currentDashboardTab: 'projects' | 'security' = 'projects';
 
@@ -599,7 +599,7 @@ function attachProjectTabListeners() {
   const imageHiddenInput = form.querySelector('input[name="image"]') as HTMLInputElement;
 
   document.getElementById('btn-add-project')?.addEventListener('click', () => {
-    editingProjectId = null;
+
     form.reset();
     (form.querySelector('input[name="id"]') as HTMLInputElement).value = '';
     imagePreviewContainer.style.display = 'none';
@@ -673,7 +673,7 @@ function attachProjectTabListeners() {
   (window as any).editProject = (id: string) => {
     const project = dbProjects.find(p => p.id === id);
     if (project) {
-      editingProjectId = id;
+
       document.getElementById('modal-title')!.innerText = 'Edit Project';
       (form.querySelector('input[name="id"]') as HTMLInputElement).value = project.id || '';
       (form.querySelector('input[name="title"]') as HTMLInputElement).value = project.title;
