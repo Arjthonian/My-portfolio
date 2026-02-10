@@ -420,8 +420,9 @@ function renderAdminLoginPage() {
 // Render Admin Dashboard
 async function renderAdminDashboard() {
   const { data: { session } } = await supabase.auth.getSession();
+  const isAuthorized = session && (session.user.id === AUTHORIZED_UID || session.user.email?.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase());
 
-  if (!session || session.user.id !== AUTHORIZED_UID) {
+  if (!isAuthorized) {
     await supabase.auth.signOut();
     window.location.hash = '#/admin';
     return;
@@ -811,52 +812,64 @@ function attachCommonListeners() {
 // Router
 async function router() {
   const path = window.location.pathname;
-  const hash = window.location.hash;
+  let hash = window.location.hash;
   const { data: { session } } = await supabase.auth.getSession();
 
-  // Redirect path to hash for SPA compatibility
+  // 1. Redirect clean path to hash (for production typing /admin)
+  // Normalize path and redirect if it's not a hash route
   if (path !== '/' && !hash) {
-    window.location.hash = `#${path}`;
+    window.location.hash = `#${path.endsWith('/') ? path.slice(0, -1) : path}`;
     window.history.replaceState(null, '', '/');
     return;
   }
 
-  const route = hash || '#/';
+  // Normalize hash (remove trailing slash if present, but keep #/)
+  let route = hash || '#/';
+  if (route.length > 2 && route.endsWith('/')) {
+    route = route.slice(0, -1);
+  }
 
+  // 2. Fetch projects if needed for the current route
   if (allProjects.length === 0 && (route === '#/projects' || route === '#/admin/dashboard' || route === '#/')) {
     renderLoading();
     await fetchProjects();
   }
 
+  // 3. Routing Table
   if (route === '#/projects') {
     renderProjectsPage();
-  } else if (route === '#/admin') {
-    // Force sign out to ensure credentials are required every time
-    await supabase.auth.signOut();
-    renderAdminLoginPage();
-  } else if (route === '#/admin/dashboard') {
-    if (!session || session.user.id !== AUTHORIZED_UID) {
+  }
+  else if (route === '#/admin') {
+    // If already logged in and authorized, go to dashboard
+    const isAuthorized = session && (session.user.id === AUTHORIZED_UID || session.user.email?.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase());
+    if (isAuthorized) {
+      window.location.hash = '#/admin/dashboard';
+    } else {
+      await supabase.auth.signOut();
+      renderAdminLoginPage();
+    }
+  }
+  else if (route === '#/admin/dashboard') {
+    const isAuthorized = session && (session.user.id === AUTHORIZED_UID || session.user.email?.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase());
+    if (!isAuthorized) {
       await supabase.auth.signOut();
       window.location.hash = '#/admin';
     } else {
       await renderAdminDashboard();
     }
-  } else if (route === '#/' || route.startsWith('#')) {
-    // Check if it's a known home section vs a bad route
-    const isFragment = route.startsWith('#') && !route.startsWith('#/');
-
-    if (route === '#/' || isFragment) {
-      renderHomePage();
-      if (isFragment) {
-        setTimeout(() => {
-          const target = document.querySelector(route);
-          if (target) target.scrollIntoView({ behavior: 'smooth' });
-        }, 0);
-      }
-    } else {
-      render404();
-    }
-  } else {
+  }
+  else if (route === '#/' || route === '') {
+    renderHomePage();
+  }
+  else if (route.startsWith('#') && !route.startsWith('#/')) {
+    // This is a section link like #skills or #projects on the home page
+    renderHomePage();
+    setTimeout(() => {
+      const target = document.querySelector(route);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    }, 0);
+  }
+  else {
     render404();
   }
 }
